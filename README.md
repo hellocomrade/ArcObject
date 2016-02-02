@@ -10,7 +10,7 @@ If you can't do, you teach :)
 OK, let's fire up our first AO project in VS2013! On menu bar: FILE -> New Project, then open the tree structure in the left pane on the dialog,
 find Visual C# -> ArcGIS -> Desktop Add-ins -> ArcMap Add-in
 In the ArGIS Add-Ins Wizard, make sure check "Button" option under Add-in Types. This will create a template of a button control for ArcMap.
-You should be able to find a cs file with name "Button1.cs". Please replace this file with the on at [here](https://github.com/hellocomrade/arcobject/lesson1/Button1.cs)
+You should be able to find a cs file with name "Button1.cs". Please replace this file with the on at [here](https://github.com/hellocomrade/arcobject/blob/master/lesson1/Button1.cs)
 Before we build the button control, open Soultion Explorer of your VS 2013, right-click on the project name and choose properties. Check 2 places:
 
 1. Target framework under Application section should be ".NET Framework 4";
@@ -51,20 +51,11 @@ it under Solution Explorer. Here is what I have (I did remove unrelated sections
   </AddIn>
 </ESRI.Configuration>
 
-It gives us a good summary on the tool we just built. Its name is "ArcMapAddin1" and its target is against ArcMap 10.3 running against .Net Framework Common Lauguage Runtime 4.0. This button control
-was given the caption as "My Button" and categorized under "Add-In Controls". Keep these in mind, you will need it later.
-If we click the "Start" button with green arrow in VS2013, you should be able to see ArcMap is started. VS2013 will do all the dirty jobs for us: invoke ArcMap 10.3 and attach the debugger to its process, load all necessary symbols from
-various assemblies to facilitate debug...We are then ready to debug. You can put a breakpoint on any line of source in Button1.cs, but nothing happens, right? It's because this control is a UI and requires the user to click on it to invoke
-any action. So, where is our button? It is not on the UI! Well, it is really inconvenient and ESRI can do a better job by automatically adding the button onto the toolbar during debug. Anyway, we will have
-to do this manaully. You will need to go to Customize -> Add-In Manager, you should be able to see our button under "My Add-Ins", thanks to ESRI! The name should match the name in config.esriaddinx, the XML file that I ask you to pay attention.
-Then, click on the button "Customize...", on Toolbars tab, you can create a new toolbar to hold our work. I created one called "Monkeybar", you can name it whatever, just make sure it won't duplicate the ones ESRI has. Switch to Commands tab,
-the left pane lists all available categories, remember what I told you to remember? The category name is "Add-In Controls"! If you click on it, on the right side, you should be able to see "My Button" as the command. Now you can drag "My Button"
-onto your new toolbar!
-Next step will be adding something onto the map. The quickest way to do it is by adding a basemap which will bring in a coordinate system. I chose ESRI World Topo. You can find my mxd file [here](https://github.com/hellocomrade/arcobject/lesson1/lesson1.mxd)
-Now if you click the button (By default, it only has a blue round icon), you should be able to see four red round dot showing on the four corners of the map, if you choose to zoom to the full extent. If you put a breat point at line 59 of Button1.cs and click
-our button in ArcMap, the execution will be suspended and you can do step by step debug on Button1.cs source inside VS2013.
-You may notice that most of logic of Button1.cs are outside OnClick function. What if you want to debug the code, say, at line 33? Well, that function is called contructor and only invoked once when this button is clicked the every first time. In order
-to do that, we will have to termintate current debug by clicking the red square button, put a new breatpoint at line 33 and start over again.
+It gives us a good summary on the tool we just built. Its name is "ArcMapAddin1" and its target is against ArcMap 10.3 running against .Net Framework Common Lauguage Runtime 4.0. This button control was given the caption as "My Button" and categorized under "Add-In Controls". Keep these in mind, you will need it later.
+If we click the "Start" button with green arrow in VS2013, you should be able to see ArcMap is started. VS2013 will do all the dirty jobs for us: invoke ArcMap 10.3 and attach the debugger to its process, load all necessary symbols from various assemblies to  facilitate debug...We are then ready to debug. You can put a breakpoint on any line of source in Button1.cs, but nothing happens, right? It's because this control is a UI and requires the user to click on it to invoke any action. So, where is our button? It is not on the UI! Well, it is really inconvenient and ESRI can do a better job by automatically adding the button onto the toolbar during debug. Anyway, we will have to do this manaully. You will need to go to Customize -> Add-In Manager, you should be able to see our button under "My Add-Ins", thanks to ESRI! The name should match the name in config.esriaddinx, the XML file that I ask you to pay attention.
+Then, click on the button "Customize...", on Toolbars tab, you can create a new toolbar to hold our work. I created one called "Monkeybar", you can name it whatever, just make sure it won't duplicate the ones ESRI has. Switch to Commands tab, the left pane lists all available categories, remember what I told you to remember? The category name is "Add-In Controls"! If you click on it, on the right side, you should be able to see "My Button" as the command. Now you can drag "My Button" onto your new toolbar!
+Next step will be adding something onto the map. The quickest way to do it is by adding a basemap which will bring in a coordinate system. I chose ESRI World Topo. You can find my mxd file  [here](https://github.com/hellocomrade/arcobject/blob/master/lesson1/lesson1.mxd) Now if you click the button (By default, it only has a blue round icon), you should be able to see four red round dot showing on the four corners of the map, if you choose to zoom to the full extent. If you put a breat point at line 59 of Button1.cs and click our button in ArcMap, the execution will be suspended and you can do step by step debug on Button1.cs source inside VS2013.
+You may notice that most of logic of Button1.cs are outside OnClick function. What if you want to debug the code, say, at line 33? Well, that function is called contructor and only invoked once when this button is clicked the every first time. In order to do that, we will have to termintate current debug by clicking the red square button, put a new breatpoint at line 33 and start over again.
 BTW, can anyone tell me what the line 36 does? What is the thing on the right side of += sign? If you don't know, it is time to spend some time on C#.
 
 
