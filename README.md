@@ -22,20 +22,15 @@ included by this default template:
 1. ESRI.ArcGIS.Geometry
 2. ESRI.ArcGIS.Carto
 
-Now you are ready to build the solution! Before you do that, there is still some housekeeping we have to do on ArcMap end. Go to your ArcMap installation folder, usually it is
-located at: C:\Program Files (x86)\ArcGIS\Desktop10.3\bin, find a file named "ArcMap.exe.config". Open it up with administrator privilege. It is a XML file and find the following
-at the top of the file:
-
+Now you are ready to build the solution! Before you do that, there is still some housekeeping we have to do on ArcMap end. Go to your ArcMap installation folder, usually it is located at: C:\Program Files (x86)\ArcGIS\Desktop10.3\bin, find a file named "ArcMap.exe.config". Open it up with administrator privilege. It is a XML file and find the following at the top of the file:
+```xml
 <startup>
     <!--<supportedRuntime version="v4.0.30319"/>-->
     <supportedRuntime version="v2.0.50727"/>
 </startup>
-
-By default, ArcMap is opened with .Net Framework Runtime 2.0, which is a conflict with the button control we are going to build in VS 2013. Comment that line and uncomment the line above
-to enable .Net Framework Runtime 4.0 for ArcMap.
-OK, now you should be able to build it without any issue. In order to make sure we are on the same page for the following section, please check your "config.esriaddinx" file. You can find
-it under Solution Explorer. Here is what I have (I did remove unrelated sections)
-
+```
+By default, ArcMap is opened with .Net Framework Runtime 2.0, which is a conflict with the button control we are going to build in VS 2013. Comment that line and uncomment the line above to enable .Net Framework Runtime 4.0 for ArcMap. OK, now you should be able to build it without any issue. In order to make sure we are on the same page for the following section, please check your "config.esriaddinx" file. You can find it under Solution Explorer. Here is what I have (I did remove unrelated sections)
+```xml
 <ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>ArcMapAddin1</Name>
   ......
@@ -50,7 +45,7 @@ it under Solution Explorer. Here is what I have (I did remove unrelated sections
     </ArcMap>
   </AddIn>
 </ESRI.Configuration>
-
+```
 It gives us a good summary on the tool we just built. Its name is "ArcMapAddin1" and its target is against ArcMap 10.3 running against .Net Framework Common Lauguage Runtime 4.0. This button control was given the caption as "My Button" and categorized under "Add-In Controls". Keep these in mind, you will need it later.
 If we click the "Start" button with green arrow in VS2013, you should be able to see ArcMap is started. VS2013 will do all the dirty jobs for us: invoke ArcMap 10.3 and attach the debugger to its process, load all necessary symbols from various assemblies to  facilitate debug...We are then ready to debug. You can put a breakpoint on any line of source in Button1.cs, but nothing happens, right? It's because this control is a UI and requires the user to click on it to invoke any action. So, where is our button? It is not on the UI! Well, it is really inconvenient and ESRI can do a better job by automatically adding the button onto the toolbar during debug. Anyway, we will have to do this manaully. You will need to go to Customize -> Add-In Manager, you should be able to see our button under "My Add-Ins", thanks to ESRI! The name should match the name in config.esriaddinx, the XML file that I ask you to pay attention.
 Then, click on the button "Customize...", on Toolbars tab, you can create a new toolbar to hold our work. I created one called "Monkeybar", you can name it whatever, just make sure it won't duplicate the ones ESRI has. Switch to Commands tab, the left pane lists all available categories, remember what I told you to remember? The category name is "Add-In Controls"! If you click on it, on the right side, you should be able to see "My Button" as the command. Now you can drag "My Button" onto your new toolbar!
