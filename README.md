@@ -61,8 +61,63 @@ Now if you click the button (By default, it is with a blue round icon), you shou
 
 You may notice that most of logics of Button1.cs are outside OnClick function. What if you want to debug the code, say, at line [33](https://github.com/hellocomrade/ArcObject/blob/master/lesson1/Button1.cs#L33)? Well, that function is called "the default contructor of the class" and only invoked once when this button is clicked the every first time. In order to debug the codes in there, we will have to termintate current debug session by clicking the red square button in VS 2013, then put a new breakpoint at line [33](https://github.com/hellocomrade/ArcObject/blob/master/lesson1/Button1.cs#L33) and start over again.
 
-BTW, can anyone tell me what the line [36](https://github.com/hellocomrade/ArcObject/blob/master/lesson1/Button1.cs#L36) means? What is the section on the right side of += sign for? If you don't know, it is time to spend some time on C# before you move on future lessons.
+BTW, can anyone tell me what the line [36](https://github.com/hellocomrade/ArcObject/blob/master/lesson1/Button1.cs#L36) means? What is the section on the right side of += sign for? If you don't know, it is time to go over C# before you move onto future lessons.
 
+## Lesson 2: Get the Heavy Work Done Outside ArcMap ##
+When Arcpy was released, one of the exciting things is that GISers are allowed to get the data processing work done without having ArcMap opening. AO allows you to do so from day one, you just need a little bit more programming effort:)
 
+In this session, we are going to develop a Windows Command Line application that is able to run without ArcMap involved (This is not completely true: if you don't have ArcEngine license, you still have to have ArcMap installed on the system in order to gain the license access). Anyway, let's close eyes and pretent ArcMap is off the radar here.
 
+In order to make a fun case, I decided to play with some real data from [Great Lakes Restoration Database](http://habitat.glc.org/). Through its [Map Interface](http://habitat.glc.org/glrd/viewer.php), you can download all GLRD projects in csv format. We will take this dump as the source data. Each row of this file contains a project record with lat/lon, which we can convert it into a point feature class. If you are a GISer, you probably have done this hundreds of times, you may ask: what the fun part of that? Allright, let's add some fun: what if I only want to extract the project for the state of Michigan? Well, if you still have trouble to find the place to download this csv file, please click [here](http://habitat.glc.org/glrd/glc-search.php?download=1&all=1).
 
+Let's go back to VS2013. FILE -> Project, on the left pane inside New Project window: Installed -> Templates -> Visual C# -> ArcGIS, if you click on "Extending ArcObjects", the central pane will display all available template, please choose "Console Application (Desktop)". You should see "ArcGIS Project Wizard" showing up, on the first page, we will keep everything as default and click "Next". Then, you will need to choose the license type for your ESRI products so the program knows what components can be built into your program. I chose "Advanced" then click Finish to get the template loaded.
+
+If you open "Solution Explorer", you should see two cs files created by ESRI. Please replace "Program.cs" with [this](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs). Again, before you build the program, you will have to add some extra refereces. Remebmer the 1st step of "ArcGIS Project Wizard"? I convinced you to skip it, you actually could load extra references there.
+
+1.ESRI.ArcGIS.Version;
+2.ESRI.ArcGIS.Geodatabase;
+3.ESRI.ArcGIS.Geometry
+
+Now, you should be able to build the program. This tool is supposed to run under command line with two arguments:
+
+C:\DesktopConsoleApplication1.exe glrd.csv michigan
+
+The first argument is the path to the csv file you just downloaded, the second one is the State name. If you fail to feed these two arguments, the program will terminate immediately. Then, you may ask: how could I set this up insdie VS2013? In Solution Explorer, right click on the project, then go to "properties", under Debug, put the arguments inside "Command line arguments". By doing so, everytime you debug the program, the stuff you put there will be fed to it.
+
+This is a "standalone" app and we will put our focus on the [code](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs). There are two tasks done in the code:
+
+1. Parse an Excel csv file using SQL query;
+2. Create a file Geodatabase and populate it with point geometry and attributes;
+ 
+The first task is necessary if we have to filter the content first. For the case I set up, we'd like to find out only the projects in a single Great Lakes State. We achieved this at Line [33](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L33) by using OleDbCommand against Excel. Microsoft offers a very neat approach to manipluate Excel data using SQL statement. I highly recommend it to your programming work.
+
+If we find positive number of projects for a state, we can go ahead to put them inside a geodatabase. Please pay attention on the flow of this process:
+
+1. Get the factory that is able to create file-based geodatabase, see line [135](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L135).  
+2. Create new feature class at line [147](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L147).
+3. Loop the project records, create new feature and then insert them into the feature class through FeatureBuffer and FeatureCursor,
+   which are recommended for bulk insertion. See line [156](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L156). Once the loop is done, flush the curosr to write all records back to disk.
+
+During the feature class creation, you will have to define:
+
+1. GeometryType;
+2. Spatial Reference;
+3. Fields as attributes;
+
+This is a pretty standard procedure. I am surprised that ESRI doesn't have a snippet or code sample for this. I only find [this](https://github.com/Esri/developer-support/blob/master/arcobjects-net/display-XY-data-from-CSV/DisplayXYData.cs) at ESRI github account. Be aware that sample uses "esriDataSourcesFile.TextFileWorkspaceFactory", which freed the programmer from dealing with csv file directly. However, the freedom always comes from the understanding of the system. With the approach I introduced, you now have more flexibility to deal with Excel file.
+
+Before we wrap up, let's go back the default template ESRI offers to us:
+```c#
+//ESRI License Initializer generated code.
+m_AOLicenseInitializer.InitializeApplication(new esriLicenseProductCode[] { esriLicenseProductCode.esriLicenseProductCodeAdvanced },
+                                        new esriLicenseExtensionCode[] { esriLicenseExtensionCode.esriLicenseExtensionCodeNetwork,                                           esriLicenseExtensionCode.esriLicenseExtensionCodeSpatialAnalyst });
+                    ....................
+//ESRI License Initializer generated code.
+//Do not make any call to ArcObjects after ShutDownApplication()
+m_AOLicenseInitializer.ShutdownApplication();
+```
+These are the routines for initializing ESRI components including licenese, then shut everything down at the end. Your code that involves ESRI stuff should be written in between.
+
+Before we dismiss, could you please take a look on the signature of function [ParseCSV](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L22), what does List<dynamic> mean? If you read the code carefully, what's the type of the stuff we throw into the List at line [38](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L22)? Again, if you have no idea, your C# knowloedge needs to be updated!
+
+OK, we are all done. Until next time, may the force be with you!
