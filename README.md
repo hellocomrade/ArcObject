@@ -58,9 +58,9 @@ Then, click on the button "Customize...", on Toolbars tab, you can create a new 
 
 Now you can drag "My Button" onto your new toolbar! Next step will be adding something onto the map. The quickest way to do it is by adding a basemap which will bring in a coordinate system. I chose ESRI World Topo. You can find my mxd file  [here](https://github.com/hellocomrade/arcobject/blob/master/lesson1/lesson1.mxd) 
 
-Now if you click the button (By default, it only has a blue round icon), you should be able to see four red round dot showing on the four corners of the map, if you choose to zoom to the full extent. If you put a breat point at line 59 of Button1.cs and click our button in ArcMap, the execution will be suspended and you can do step by step debug on Button1.cs source inside VS2013.
+Now if you click the button (By default, it only has a blue round icon), you should be able to see four red round dot showing on the four corners of the map, if you choose to zoom to the full extent. If you put a breat point at line [59](https://github.com/hellocomrade/ArcObject/blob/master/lesson1/Button1.cs#L59) of Button1.cs and click our button in ArcMap, the execution will be suspended and you can do step by step debug on Button1.cs source inside VS2013.
 
-You may notice that most of logic of Button1.cs are outside OnClick function. What if you want to debug the code, say, at line 33? Well, that function is called contructor and only invoked once when this button is clicked the every first time. In order to do that, we will have to termintate current debug by clicking the red square button, put a new breatpoint at line 33 and start over again.
+You may notice that most of logic of Button1.cs are outside OnClick function. What if you want to debug the code, say, at line 33? Well, that function is called contructor and only invoked once when this button is clicked the every first time. In order to do that, we will have to termintate current debug by clicking the red square button, put a new breatpoint at line [33](https://github.com/hellocomrade/ArcObject/blob/master/lesson1/Button1.cs#L33) and start over again.
 
 BTW, can anyone tell me what the line 36 does? What is the thing on the right side of += sign? If you don't know, it is time to spend some time on C#.
 
