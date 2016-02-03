@@ -14,11 +14,12 @@ namespace ESRIDesktopConsoleApplication1
     {
         private static LicenseInitializer m_AOLicenseInitializer = new ESRIDesktopConsoleApplication1.LicenseInitializer();
         private const string ConnStrFMT = @"Provider=Microsoft.Jet.OleDb.4.0; Data Source={0};Extended Properties=""Text;HDR=YES;FMT=Delimited""";
-        private const string GDB_Name = "glrd.gdb";
+        private const string GDB_Name = "glrd-{0}.gdb";
         private const string OBJECT_ID = "OID";
         private const string SHP_NAME = "Shape";
+        private const string FtrClass_Name = "glrd";
         
-        static List<dynamic> ParseCSV(string filename)
+        static List<dynamic> ParseCSV(string filename, string statename)
         {
             List<dynamic> prjs = new List<dynamic>();
             if(true == File.Exists(filename))
@@ -29,7 +30,7 @@ namespace ESRIDesktopConsoleApplication1
                     using (var conn = new OleDbConnection(connStr))
                     {
                         conn.Open();
-                        using (var cmd = new OleDbCommand(string.Format("select [lon],[lat],[Title] from [{0}] where [State] like '%Michigan%'", System.IO.Path.GetFileName(filename)),conn))
+                        using (var cmd = new OleDbCommand(string.Format("select [lon],[lat],[Title] from [{0}] where UCase([State]) like '%{1}%'", System.IO.Path.GetFileName(filename), statename.ToUpper()),conn))
                         {
                             using (var reader = cmd.ExecuteReader())
                             {
@@ -105,12 +106,13 @@ namespace ESRIDesktopConsoleApplication1
         [STAThread()]
         static void Main(string[] args)
         {
-            if(0 == args.Length)
+            if(2 != args.Length)
             {
-                System.Console.WriteLine("We need that GLRD csv file in this demo, dude!");
+                System.Console.WriteLine("We need that GLRD csv file in this demo, dude! Also, tell me the State Name as filter please!");
                 return;
             }
-            var prjs = ParseCSV(args[0]);
+            string gdb = string.Format(GDB_Name, args[1]);
+            var prjs = ParseCSV(args[0], args[1]);
             if (prjs.Count > 0)
             {
                 try
@@ -131,9 +133,9 @@ namespace ESRIDesktopConsoleApplication1
                     // Ugly way to create object through reflection
                     Type factoryType = Type.GetTypeFromProgID("esriDataSourcesGDB.FileGDBWorkspaceFactory");
                     IWorkspaceFactory workspaceFactory = (IWorkspaceFactory)Activator.CreateInstance(factoryType);
-                    if (false == System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(args[0])) + "\\" + GDB_Name))
+                    if (false == System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(args[0])) + "\\" + gdb))
                     {
-                        IWorkspaceName workspaceName = workspaceFactory.Create(System.IO.Path.GetDirectoryName(args[0]), GDB_Name, null, 0);
+                        IWorkspaceName workspaceName = workspaceFactory.Create(System.IO.Path.GetDirectoryName(args[0]), gdb, null, 0);
                         //ugly way to release raw COM Object
                         ReleaseCOMObj(workspaceFactory);
                         // Cast the workspace name object to the IName interface and open the workspace.
@@ -142,7 +144,7 @@ namespace ESRIDesktopConsoleApplication1
                         IFeatureWorkspace ftrspace = workspace as IFeatureWorkspace;
                         List<dynamic> fldlst = new List<dynamic>();
                         fldlst.Add(new { Name = "Title", Type = esriFieldType.esriFieldTypeString });
-                        IFeatureClass ftrClass = CreateFeatureClass("glrd", ftrspace, esriGeometryType.esriGeometryPoint, 4326, fldlst);
+                        IFeatureClass ftrClass = CreateFeatureClass(FtrClass_Name, ftrspace, esriGeometryType.esriGeometryPoint, 4326, fldlst);
                         if (null != ftrClass)
                         {
                             IPoint pnt = null;
@@ -168,7 +170,7 @@ namespace ESRIDesktopConsoleApplication1
                             try
                             {
                                 ftrCursor.Flush();
-                                Console.WriteLine(string.Format("File GDB: {0} has been created!", GDB_Name));
+                                Console.WriteLine(string.Format("File GDB: {0} has been created!", gdb));
                             }
                             catch (System.Runtime.InteropServices.COMException)
                             {
@@ -181,7 +183,7 @@ namespace ESRIDesktopConsoleApplication1
                         }
                     }
                     else
-                        Console.WriteLine(string.Format("Dude, the GDB has been created already! Remove {0} and try again please.", GDB_Name));
+                        Console.WriteLine(string.Format("Dude, the GDB has been created already! Remove {0} and try again please.", gdb));
                     //ESRI License Initializer generated code.
                     //Do not make any call to ArcObjects after ShutDownApplication()
                     m_AOLicenseInitializer.ShutdownApplication();
