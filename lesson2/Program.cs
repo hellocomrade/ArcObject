@@ -94,7 +94,7 @@ namespace ESRIDesktopConsoleApplication1
                     fld.Type_2 = efld.Type;
                     flds.Field_2[eidx++] = fld;
                 }
-                ftrc = ftrSpc.CreateFeatureClass(name, flds, null, null, esriFeatureType.esriFTSimple, "Shape", null);
+                ftrc = ftrSpc.CreateFeatureClass(name, flds, null, null, esriFeatureType.esriFTSimple, SHP_NAME, null);
             }
             return ftrc;
         }
