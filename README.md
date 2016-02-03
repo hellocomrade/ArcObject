@@ -118,6 +118,6 @@ m_AOLicenseInitializer.ShutdownApplication();
 ```
 These are the routines for initializing ESRI components including licenese, then shut everything down at the end. Your code that involves ESRI stuff should be written in between.
 
-Before we dismiss, could you please take a look on the signature of function [ParseCSV](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L22), what does List<dynamic> mean? If you read the code carefully, what's the type of the stuff we throw into the List at line [38](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L22)? Again, if you have no idea, your C# knowloedge needs to be updated!
+Before we dismiss, could you please take a look on the signature of function [ParseCSV](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L22), what does List&lt;dynamic&gt; mean? If you read the code carefully, what's the type of the stuff we throw into the List at line [38](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L22)? Again, if you have no idea, your C# knowloedge needs to be updated!
 
 OK, we are all done. Until next time, may the force be with you!
