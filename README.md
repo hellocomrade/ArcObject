@@ -121,3 +121,155 @@ These are the routines for initializing ESRI components including licenese, then
 Before we dismiss, could you please take a look on the signature of function [ParseCSV](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L22), what does List&lt;dynamic&gt; mean? If you read the code carefully, what's the type of the stuff we throw into the List at line [38](https://github.com/hellocomrade/ArcObject/blob/master/lesson2/Program.cs#L22)? Again, if you have no idea, your C# knowloedge needs to be updated!
 
 OK, we are all done. Until next time, may the force be with you!
+
+## Lesson 3: ArcObjects or ArcPy, To be or Not to be ##
+
+First of all, I don't intend to create a holy war here. Both of them are great! I only want to illustrate the difference between AO and AP under a particular case. Hopefully, no matter you are an AO or AP supporter, this could be helpful for you to pick the right tool for the right task.
+
+Let's describe the task first: if you are familiar with Graph as a data structure in the context of computer science, you may know it's a foundmental structure to conduct any kind of operations, such as network tracing, shortest path, maximum flow, etc. Given a prepocessed dataset [NHD Plus](http://www.horizon-systems.com/nhdplus/) for Great Lakes in file geodatabase format, we'd like to create the graph in its [adjancent list](https://en.wikipedia.org/wiki/Adjacency_list) form. By examining the geodatabase carefully, we found there are two feature classes that are particularly useful for this task: NHD_Flowline and Hydro_Net_Junctions. As you may know, NHD Plus is a dataset that was processed and built with a Stream Network using ESRI technology. However, ESRI geodatabase is proprietary so we can't take advantage of existing data to build our adjacency list (I actually exaggreate a bit here coz ESRI does provide an open source C++ library for manipulating file based geodatabase).
+
+By using these two feature classes, we could get our work done using ArcPy in a pretty straightforward way. Here is the [code](https://github.com/hellocomrade/arcpy_nhd_tracing/blob/master/adj.py). You may notice that script used shp file instead of geodatabase. I didn't lie, I do have a version using Geodatabase [here](https://github.com/GreatLakesCommission/brcs-models/blob/master/test/arcpy/trajectory_db.py). If you work for my employer, you should be able to view it. If you set this script up on your desktop with ArcMap 10.3 installed and NHD Plus for Great Lakes ready (let me know if you need this 'NHDPlusV21_GL_04.gdb' used in the test), you may find it could take you up to 6 to 12 hours to complete. I bet you would also notice the bottleneck is [here](https://github.com/hellocomrade/arcpy_nhd_tracing/blob/master/adj.py#L39) and [here](https://github.com/hellocomrade/arcpy_nhd_tracing/blob/master/adj.py#L56). 
+
+Can we make some improvement there? Unfortunatelly, there is really not much we could do since ESRI only exposed limited functionalities to ArcPy, mainly Geoprocessing using whatever inside the toolbox of ArcMap. In other words, all your ArcPy scripts do one thing: a combination of whatever number of tools ESRI offers in ArcMap. You do have 64-bit capacity but not much help for this case, which is more likely to be CPU bound.
+
+Let's flip the coin and check the other side: ArcObjects .Net, this evil successor of ArcObject for Visual Basic provides a thin layer wrapper on top of ArcObjects COMs and supposed to be able to access every aspect of ESRI technologies, well, if you have proper license purchased. In order to have a fair play, we will stick with the same methodology that ArcPy takes. We believe we could have a better performed C# script using AO based upon the fact AO offers a finer granularity than AP in terms of programming. By breaking those two bottlenecks and go a layer deeper inside AO, we may make a difference.
+
+First thing first, let's get the boring part explained first: Here are two POCOs to represent the node and its succssors:
+
+```c#
+    sealed class DownstreamNode
+    {
+        private int incomingEdgeId;
+        
+        public int IncomingEdgeId
+        {
+            get { return incomingEdgeId; }
+            //set { incomingEdgeId = value; }
+        }
+        private int id;
+
+        public int Id
+        {
+            get { return id; }
+            //set { id = value; }
+        }
+
+        private IEnumerable<double> velocities = null;
+
+        public IEnumerable<double> Velocities
+        {
+            get { return velocities; }
+            //set { velocities = value; }
+        }
+        public DownstreamNode(int id, int eid, IEnumerable<double> vecs)
+        {
+            this.id = id;
+            this.incomingEdgeId = eid;
+            this.velocities = vecs;
+        }
+
+    }
+    sealed class Vertex
+    {
+        private int id;
+
+        public int Id
+        {
+            get { return id; }
+            //set { id = value; }
+        }
+        private int incomingStreamCount;
+
+        public int IncomingStreamCount
+        {
+            get { return incomingStreamCount; }
+            //set { incomingStreamCount = value; }
+        }
+        List<DownstreamNode> downstreams;
+
+        internal List<DownstreamNode> Downstreams
+        {
+            get { return downstreams; }
+            //set { downstreams = value; }
+        }
+        public Vertex(int id, int incomingCnt, List<DownstreamNode> ds)
+        {
+            this.id = id;
+            this.incomingStreamCount = incomingCnt;
+            this.downstreams = ds;
+        }
+    }
+```
+
+Vertex as the node is used to track the node Id, the number of incoming streams and most important: the downstream nodes stored in a List. DownstreamNode class contains node ID, incoming stream ID and most important: the velocity data in a list (our original thought is to use these velocity to calculate travel time along streams).
+
+In the C# script, we need to open the file-based geodatabase and get the references to feature classes we'd like to examine:
+
+```c#
+    Type factoryType = Type.GetTypeFromProgID("esriDataSourcesGDB.FileGDBWorkspaceFactory");
+    IWorkspaceFactory workspaceFactory = (IWorkspaceFactory)Activator.CreateInstance(factoryType);
+    IWorkspace workspace = workspaceFactory.OpenFromFile(@"C:\Users\hellocomrade\NHDPlusV21_GL_04.gdb", 0);
+    IFeatureWorkspace iFtrWs = workspace as IFeatureWorkspace;
+    IFeatureClass fcLine = iFtrWs.OpenFeatureClass("NHD_Flowline");
+    IFeatureClass fcPoint = iFtrWs.OpenFeatureClass("Hydro_Net_Junctions");
+```
+
+Since we now have feature classes in hand, we are ready to tackle the spatial queries, which ususally done in ArcPy by three lines of code:
+
+```python
+    arcpy.MakeFeatureLayer_management("junctionpoint.shp",VertexLyr,'"FID"={0}'.format(row[0]))
+    arcpy.MakeFeatureLayer_management("flowline.shp",FlowlineLyr)
+    arcpy.SelectLayerByLocation_management(FlowlineLyr,"INTERSECT",VertexLyr)
+```
+
+The third line "arcpy.SelectLayerByLocation_management" is the key. Since we are going to have to loop through every junction point against NHD_Flowline layer (one point against all polylines), we suspect "SelectLayerByLocation_management" may be inefficient due to the design. "SelectLayerByLocation_management" is probably programmed this way:
+
+1. Build spatial index on NHD_Flowline;
+2. Search the index using given point and find all candidates residing on a sub-tree of polylines;
+3. Linear scanning all candidates against given point using geometric operators to rule out false positive;
+4. Return resultset;
+
+It's possible the first step, the index, could be rebuilt every time we invoke "arcpy.SelectLayerByLocation_management", which is a waste. What if we build it once and use the same index for all points? I was told that AO spatial query should be done using:
+
+```c#
+    featureClassRef.search(spatialQueryFilter, null);
+```
+
+I am not sure how it was implemented, but it really looks close to "arcpy.SelectLayerByLocation_management". So, I decide to go a different route: "IFeatureIndex" and "IIndexQuery2", which seems promising by giving us finer scale control. Here is my code:
+
+```c#
+   IGeoDataset geoLineDS = (IGeoDataset)fcLine;
+   ISpatialReference srLine = geoLineDS.SpatialReference;
+   IFeatureIndex lineIdx = new FeatureIndexClass();
+   lineIdx.FeatureClass = fcLine;
+   lineIdx.Index(null, geoLineDS.Extent);
+   IIndexQuery2 queryLineByIdx = lineIdx as IIndexQuery2;
+```
+
+We create a FeatureIndex coclass and ask it to create the spatial index against the given feature class (it appears that FeatureIndex actually creates index on the file system, I thought it could take advantage of the index inside geodatabase.) and then we cast it to IIndexQuery2, which has a method called: [IntersectedFeatures](http://resources.arcgis.com/EN/HELP/ARCOBJECTS-NET/COMPONENTHELP/index.html#/IntersectedFeatures_Method/0012000006rz000000/). If we are right, this will perform the above steps from 2 to 4.
+
+We can easily put codes together as an ESRI console application using C#, well if you followed my previous tutorials. One thing that is worth to mention is to calculate the geodesic length of a polyline with lon/lat coordinates. In ArcPy, again, only needs one line of code:
+
+```python
+cursor_row_item.getLength('Geodesic','Feet')
+```
+
+You may think it's supposed to be this simple. Well, hold your thought, see how this was done in AO, given polyLine is a IPolyline:
+
+```c#
+    double lineLen = 0.0;
+    IGeometryServer2 geoOperator = new GeometryServerClass();
+    ILinearUnit unit = new LinearUnitClass();
+    PolylineArray tmpArr = new PolylineArrayClass();
+    tmpArr.Add(polyLine);
+    IDoubleArray lengths = geoOperator.GetLengthsGeodesic(srLine, tmpArr as IPolylineArray, unit);
+    if (0 != lengths.Count)
+        lineLen = lengths.get_Element(0) * 3.28084;
+```
+Sorry, don't ask me how come a default LinearUnitClass instance could work here. It's messy enough. I held my impluse to put my own Haversine code there coz I trust ESRI has a better solution near North/South Pole...You got to believe it! :) Again, I was told by an AO guru that this geodesic length on polyline thing should be done on the segments level using a differnt method. I didn't dig that much: I actually intentionally made my C# code a bit messy, I even tried to use Linq but C#'s Linq is pale comparing with Python's list comprehension. Because I know: C# on CLR against COM on Windows platform is definitely going to be faster than Python, not to mention ArcPy is on top of wrapper's wrapper of wrappers...
+
+If you could compile the code successfully, don't be so rush to run it, make a cup of coffee and have your favorite book in hands, the last ArcPy script took hours! Well, on my laptop, I did have time have a cup of coffee and read some news online, however, surprisingly, This AO version was completed in 15 mintues! My math is bad, can someone tell me how many times this one is faster than the AP version?
+
+Again, I don't mean to prove AO is better than AP or convince you to switch to AO. I'd like to give everyone an opportunity to update your knowledgebase and think outside of the box! It's possible that you lose the track of the sense of performance while you are enjoying the fewer lines of code of ArcPy... I like ArcPy, I really do, but in a lot of scenarios, I feel like I was wearing a T-shrit for a teenager. So, my advice is: if you do care the performance or you sense ArcPy has been too slow for you, you may consider using ArcObject, which usually won't disappoint you, at least not this time for our testing case. :)
+
+See you next time!
