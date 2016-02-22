@@ -273,3 +273,122 @@ If you could compile the [code](https://github.com/hellocomrade/ArcObject/blob/m
 Again, I don't mean to prove AO is better than AP or convince you to switch to AO. I'd like to give everyone an opportunity to update your knowledgebase and think outside of the box! It's possible that you lose the track of the sense of performance while you are enjoying the fewer lines of code of ArcPy... I like ArcPy, I really do, but in a lot of scenarios, I feel like I was wearing a T-shrit for a teenager. So, my advice is: if you do care the performance or you sense ArcPy has been too slow for you, you may consider using ArcObject, which usually won't disappoint you, at least not this time for our testing case. :)
 
 See you next time!
+
+
+## Lesson 4: Inside ArcPy ##
+
+I know, I kown, we are supposed to discuss ArcObject, not ArcPy. However, previously, on "ArcObject .Net with VS 2013"...(all right, we are not a TV series:), I was shocked by the performance gain by swithcing from ArcPy to ArcObject. I thought it might be worth doing some investigation on ArcPy, its implementation and its capability. If you don't plan to learn ArcPy, please ignore this charpter.
+
+ArcPy was first introduced in 2010 with the realse of ArcGIS 10 (well, it's really jsut 9.4, but naming it 10 made it sound newer...). In fact, there were "arcgisscripting" back to ArcGIS 9.2, it supported not only Python, but other scripting languages, such as VBScript, Perl, as well. However, soon after Microsoft stopped support on VB, VBScript, Jscript, ESRI made the dicision to drop all scripts but Python. It was meant to provide scripting ability on geoprocessing tasks only. Geoprocessing toolbox was debuted in ArcMap 9.2. It was designed to simplify certain data processing works:
+
+1. Analysis toolbox
+2. Cartography toolbox
+3. Conversion toolbox
+4. Data Management toolbox
+5. Editing toolbox
+6. Geocoding toolbox
+7. Linear Referencing toolbox
+8. Multidimension toolbox
+9. Spatial Statistics toolbox
+ 
+In ArcPy, every geoprocessing function in ArcMap is defined as a function inside ArcPy modules. You may generate the contex hull of a point feature class by the following two lines of code:
+
+```python
+arcpy.env.workspace="C:\Users\hellocomrade\Documents\ArcGIS\GIS Data"
+arcpy.MinimumBoundingGeometry_management("Marinas.shp","Marinas_CH.shp","CONVEX_HULL","ALL")
+```
+
+The function "MinimumBoundingGeometry_management" is equivalent to the tool of "Minimum Bounding Geometry", which can be found ArcMap-> Toolbox -> Data Management. ArcPy simply automates this tool by allowing user to send parameters of this tool in a programatic manner. After a second look, you may notice all functions follow the samae [naming convention](http://resources.arcgis.com/en/help/main/10.2/index.html#/Understanding_tool_syntax/002t00000011000000/):
+
+toolname + '_' + toolbox alias
+
+If you are not sure the alias of a particular toolbox, right click on the toolbox then property.
+
+According to ESRI blog, here is the purpose of ArcPy:
+
+"ArcPy is a site-package that builds on (and is a successor to) the successful arcgisscripting module. Its goal is to create the cornerstone for a useful and productive way to perform geographic data analysis, data conversion, data management, and map automation with Python."
+
+In the first edition of ArcPy, other than geoprocessing, it also provides couple other modulese: Mapping (arcpy.mapping), Spatial Analysis (arcpy.sa) and Geostatistical Analyst (arcpy.ga). In 10.1, Data Access (arcpy.da) and Time (arcpy.time) were introduced. It also includes some other libraries/utilites.
+
+As we all know, all ESRI production customization can be done through ArcObject and ArcObject was developed based upon Microsoft COM against Windows system. For example, the means to excute geoprocessing tools is through GPDispatch coclass ([coclass definition](https://msdn.microsoft.com/en-us/library/24z8966k.aspx)). It only allows user to send in arugments by string and consume whatever result the interface returns. Therefore, ESRI call it a "coarse-grained object", see [here](http://edndoc.esri.com/arcobjects/9.2/ComponentHelp/esriGeoprocessing/GpDispatch.htm). ArcPy, however, implements its geoprocessing functionalities on top of this interface. As some of the ESRI document indicates, ArcPy is a coarser-grained model as well.
+
+"Arcpy.mapping was built for the professional GIS analyst (as well as for developers). Traditionally, the scenarios listed above had to be done using ArcObjects and it often proved to be a very difficult programming environment to learn for the average GIS professional. Arcpy.mapping is a courser-grained object model, meaning that the functions are designed in a way that a single arcpy.mapping function can replace many lines of ArcObjects code."
+
+Therefore, you could easliy get some amazing thing done through ArcPy in only couple lines of code:
+
+```python
+mxd = arcpy.mapping.MapDocument("C:/Project/Watersheds.mxd")  
+arcpy.mapping.ExportToPDF(mxd, "C:/Project/Output/Watersheds.pdf")
+```
+
+The above codes will render all features in the mxd, using the configuration defined in the mxd, to a pdf file.
+
+You may want to ask: should we consider ArcPy as a replacement of ArcObject? Still, according to ESRI:
+
+"Arcpy.mapping is not a replacement for ArcObjects but rather an alternative for the different scenarios it supports. ArcObjects is still necessary for finer-grain development and application customization, whereas arcpy.mapping is intended for automating the contents of existing map documents and layer file."
+
+You may also want to know: if ArcPy is able to call ArcObject directly? The answer is NO. But, I am sure, ArcPy is still somehow communicate with ArcObject indirectly, implicitly. As always, "curiosity killed the cat". I am going to open the hood of ArcPy a little bit and see what's in there. On my desktop, ArcPy was installed at:
+
+C:\Program Files (x86)\ArcGIS\Desktop10.2\arcpy\arcpy
+
+In there, you will find a classic python module [package structure](https://docs.python.org/2/tutorial/modules.html#packages). There is a subfolder there called "arcobjects", are you convinced? I am sure you are not. So, let's open some py files. "MapDocument" class is defined in _mapping.py. The declaration of the class is like:
+
+```python
+class MapDocument(mixins.MapDocumentMethods,_BaseArcObject):  
+```
+
+If you are familiar with C# or Java, you could consider "mixins" as an interface. There is no explicit constructor defined in MapDocument, therefore, according to Python's Method Resolution Order ([MRO](https://www.python.org/download/releases/2.3/mro/), depth-first before 2.3 and C3 algorithm after, you could examine the behavior of MRO by class.mro()), its base classes' constructors will be invoked:
+
+```python
+class MapDocumentMethods(object):  
+    def __init__(self, mxd):  
+        """MapDocument(mxd_path) 
+ 
+           Provides a reference to a map document ( .mxd ) stored on disk or to 
+           the map document that is currently loaded within the ArcMap 
+           application (using the CURRENT keyword) 
+ 
+             mxd_path(String): 
+           A string that includes the full path and file name of an existing map 
+           document ( .mxd ) or a string that contains the keyword CURRENT."""  
+        assert (os.path.isfile(mxd) or (mxd.lower() == "current")), gp.getIDMessage(89004, "Invalid MXD filename")  
+        super(MapDocumentMethods, self).__init__(mxd)
+......
+```
+
+It appears MapDocumentMethods invokes its base class's __init__ directly if super() actually returns its base class. However, since we are dealing with multiple inheritance here, super(MapDocumentMethods, self).__init__(mxd) actually invokdes the constructor of MapDocument's second base class: "_BaseArcObject". If you'd like to understand more about the fancy behaviors of super, please click [here](https://rhettinger.wordpress.com/2011/05/26/super-considered-super/). Let's take a look on _BaseArcObject:
+
+```python
+class _BaseArcObject(object):  
+    _arc_object = None  
+    def __init__(self, *args, **kwargs):  
+        """Wrapper for ArcGIS scripting Arc Objects -- 
+           Create a new object instance if no reference is passed in."""  
+        super(_BaseArcObject, self).__init__()  
+        self._arc_object = gp._gp.CreateObject(self.__class__.__name__,  
+                    *((arg._arc_object if hasattr(arg, '_arc_object') else arg)  
+                        for arg in args))  
+        for attr, value in kwargs.iteritems():  
+            setattr(self._arc_object, attr, value)  
+        self._go()  
+```
+
+It has a constructor that is able to take Variable-length input arguments. It also defines a static member variable, "_arc_object". "gp._gp.CreateObject" function is actually defined in name space "geoprocessing", remember we mentioned that geoprocessing is the first module introduced for ArcPy? For gp, it's an instance of class Geoprocessor:
+
+```python
+class Geoprocessor(object):  
+    """Represents a geoprocessing object in ArcGIS"""  
+    def __init__(self):  
+        """Geoprocessor()"""  
+        self._gp = arcgisscripting.create(10.0) 
+```
+
+Now, we have reached the origin: ArcPy communicate with ArcObject through "arcgisscripting", who is the predecessor of ArcPy. You will not find arcgisscripting inside ArcPy folder, it actually resides at "C:\Program Files (x86)\ArcGIS\Desktop10.2\bin", with the name of "arcgisscripting.pyd", which is actually a DLL.
+
+As we discussed in the previous and this charpter, because of interoperability with COM, you should expect some performance loss if you use ArcPy not ArcObject. How much loss you may get is really depending on the tasks. Here is a benchmark I fuond on Internet against ArcGIS 9.3. Let's hope ESRI is making a better job now.
+
+![benchmark_arcpy](https://github.com/hellocomrade/ArcObject/blob/master/lesson4/20140712032424890.png)
+
+Again, This charpter is meant to help you understand what made of ArcPy. Both ArcObject and ArcPy are great tools for different scenarios. If you'd like to know more about ArcPy, I recommend ESRI's repos on github [here](https://github.com/Esri/solutions-geoprocessing-toolbox). Let me know if you can find any expensive geoprocessing function called inside a huge loop. :)
+
+Enjoy!
