@@ -385,7 +385,7 @@ class Geoprocessor(object):
 
 Now, we have reached the origin: ArcPy communicate with ArcObject through "arcgisscripting", who is the predecessor of ArcPy. You will not find arcgisscripting inside ArcPy folder, it actually resides at "C:\Program Files (x86)\ArcGIS\Desktop10.2\bin", with the name of "arcgisscripting.pyd", which is actually a DLL.
 
-As we discussed in the previous and this chapter, because of interoperability with COM, you should expect some performance loss if you use ArcPy not ArcObject. How much loss you may get is really depending on the tasks. Here is a benchmark I fuond on Internet against ArcGIS 9.3. Let's hope ESRI is making a better job now.
+As we discussed in the previous and this chapter, because of interoperability with COM, you should expect some performance loss if you use ArcPy not ArcObject. How much loss you may get is really depending on the tasks. Here is a benchmark I fuond on Internet against ArcGIS 9.3. @dbGLC reminded me that this graphic was taken from a presnetation discussing the possibility of invoking AO COM directly using Python by using some Python COM packages, such as [comtypes](https://pypi.python.org/pypi/comtypes). The original discussion thread is [here](http://gis.stackexchange.com/questions/80/how-do-i-access-arcobjects-from-python). You may find lots of brilliant ideas there.
 
 ![benchmark_arcpy](https://github.com/hellocomrade/ArcObject/blob/master/lesson4/20140712032424890.png)
 
