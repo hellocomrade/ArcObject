@@ -277,7 +277,7 @@ See you next time!
 
 ## Lesson 4: Inside ArcPy ##
 
-I know, I kown, we are supposed to discuss ArcObject, not ArcPy. However, previously, on "ArcObject .Net with VS 2013"...(all right, we are not a TV series:), I was shocked by the performance gain by swithcing from ArcPy to ArcObject. I thought it might be worth doing some investigation on ArcPy, its implementation and its capability. If you don't plan to learn ArcPy, please ignore this charpter.
+I know, I kown, we are supposed to discuss ArcObject, not ArcPy. However, previously, on "ArcObject .Net with VS 2013"...(all right, we are not a TV series:), I was shocked by the performance gain by swithcing from ArcPy to ArcObject. I thought it might be worth doing some investigation on ArcPy, its implementation and its capability. If you don't plan to learn ArcPy, please ignore this chapter.
 
 ArcPy was first introduced in 2010 with the realse of ArcGIS 10 (well, it's really jsut 9.4, but naming it 10 made it sound newer...). In fact, there were "arcgisscripting" back to ArcGIS 9.2, it supported not only Python, but other scripting languages, such as VBScript, Perl, as well. However, soon after Microsoft stopped support on VB, VBScript, Jscript, ESRI made the dicision to drop all scripts but Python. It was meant to provide scripting ability on geoprocessing tasks only. Geoprocessing toolbox was debuted in ArcMap 9.2. It was designed to simplify certain data processing works:
 
@@ -385,10 +385,10 @@ class Geoprocessor(object):
 
 Now, we have reached the origin: ArcPy communicate with ArcObject through "arcgisscripting", who is the predecessor of ArcPy. You will not find arcgisscripting inside ArcPy folder, it actually resides at "C:\Program Files (x86)\ArcGIS\Desktop10.2\bin", with the name of "arcgisscripting.pyd", which is actually a DLL.
 
-As we discussed in the previous and this charpter, because of interoperability with COM, you should expect some performance loss if you use ArcPy not ArcObject. How much loss you may get is really depending on the tasks. Here is a benchmark I fuond on Internet against ArcGIS 9.3. Let's hope ESRI is making a better job now.
+As we discussed in the previous and this chapter, because of interoperability with COM, you should expect some performance loss if you use ArcPy not ArcObject. How much loss you may get is really depending on the tasks. Here is a benchmark I fuond on Internet against ArcGIS 9.3. Let's hope ESRI is making a better job now.
 
 ![benchmark_arcpy](https://github.com/hellocomrade/ArcObject/blob/master/lesson4/20140712032424890.png)
 
-Again, This charpter is meant to help you understand what made of ArcPy. Both ArcObject and ArcPy are great tools for different scenarios. If you'd like to know more about ArcPy, I recommend ESRI's repos on github [here](https://github.com/Esri/solutions-geoprocessing-toolbox). Let me know if you can find any expensive geoprocessing function called inside a huge loop. :)
+Again, This chapter is meant to help you understand what made of ArcPy. Both ArcObject and ArcPy are great tools for different scenarios. If you'd like to know more about ArcPy, I recommend ESRI's repos on github [here](https://github.com/Esri/solutions-geoprocessing-toolbox). Let me know if you can find any expensive geoprocessing function called inside a huge loop. :)
 
 Enjoy!
