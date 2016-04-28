@@ -392,3 +392,26 @@ As we discussed in the previous and this chapter, because of interoperability wi
 Again, This chapter is meant to help you understand what made of ArcPy. Both ArcObject and ArcPy are great tools for different scenarios. If you'd like to know more about ArcPy, I recommend ESRI's repos on github [here](https://github.com/Esri/solutions-geoprocessing-toolbox). Let me know if you can find any expensive geoprocessing function called inside a huge loop. :)
 
 Enjoy!
+
+## Lesson 5: ArcObjects Object Model Diagram (OMD) ##
+
+If you are a seasoned AO developer, no matter you prefer VBA, VB, VB.Net, C#, Java or C++ (ordered by the popularity:), you got take these diagrams somtimes for looking up purpose at least. Well, if you are a AO newbie, just like me, you may feel I was exaggerated. I won't blame you coz I thought so as well. However, once you start implementing a function through AO seriously, these diagrams would be your ultmiate weapon, especially after couple time-wasting google searches. No kidding, I always joked with my colleagues: a senior developer is someone who could solve a technical puzzle that is not answered by search engines. Unfortunately, ArcObjects falls into this category more than other technologies! Two reasons: 1. AO has a relatively small user group; 2. ESRI did a very bad job to maintain developer's API documentation. I pay $1,500 a year for EDN subscription, but I still feel helpless more often than I expected...
+
+People always learn from their own lessons (well, someone does falls into the same river more than once though). After couple frustrating experience with Google and EDN docs, I suddenly remembered the time when I was young: I saw those AO gurus standing and ruminating in front of a huge whiteboard with a couple feet long diagram nailed on it. I recalled the diagram they staring at is called AO Object Model Diagram, aka OMD (Oh My Darling)! Wait a minute, where are my darlings? On my desktop, They are located in:
+
+C:\Program Files (x86)\ArcGIS\DeveloperKit10.4\Diagrams
+
+There are 68 pdfs in this folder, well there were lot less for previous AO version. If you are an amatuer just like me, I'd like to recommend reading GeoDatabaseObjectModel.pdf first. It contains most of the stuff you may need to start AO programming. Let's take a look together!
+
+First of all, you have to understand ESRI is a sincere follower of UML. All thoes strange symobls you may see are actually derived from UML Class Diagrams with some ESRI invention. [Here](http://www.uml-diagrams.org/class-reference.html) is a good reference for UML Class Diagram. If you don't want to spend 3 minutes to go over those concepts and assoicated sybmols, ESRI does have an UML 101 on each diagram.
+
+![Class Diagram Key](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/uml-notation.png)
+
+ESRI did make their invention. What are inbound interface and outbound interface? Even after I took the class of UML for a full semaster, there is no clue for what the heck they might be! No worry, ESRI offers explanation in its "Learning ArcObjects" series that is available online and offline for every release. Here is the charpter: [Reading OMDs](http://help.arcgis.com/en/sdk/10.0/Arcobjects_net/conceptualhelp/index.html#//000100000306000000). Now you may know inbound interface is the interface the specified class actually implements, outbound interface is actually event registry, ESRI calls it event sink. It's an old school trick for registering your event handler. If you are as naive as I am, you may simply consider it as Event in the context of .Net.
+
+Remember I mentioned before that those gurus printed ORM as large as a small scale map using plotter? Why? If you open up GeoDatabaseObjectModel.pdf, this is what you may see well unless you have an extremely large LED TV as screen:
+
+![OMD full view](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/geodb.png)
+
+Now, you know why plotter is necessary, do you :)
+
