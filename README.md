@@ -417,15 +417,16 @@ Now, you know why plotter is necessary, do you :)
 
 If you know the interface that you are interested, it's always convenient to lookup the corresponding OMD directly. Otherwise, you feel you are playing a hide and seek game...
 
-OK, let's play the hide and seek game. Here is the deal: I'd like to open a file based GeoDatabase and get the information about the feature classes in it. If you are a programmer, you may know opening a file from disk usually use some functions like "open", or "openfile" etc. Since we are OOP, there got be a class that we can apply this function. Before you dive into the my darlings ocean, I grab your arms and say: wait a minute, one more thing I need to mention: there three surivial rules for playing with My Darlings (OMD):
+OK, let's play the hide and seek game. Here is the deal: I'd like to open a file based GeoDatabase and get the information about the feature classes in it. If you are a programmer, you may know opening a file from disk usually use some functions like "open", or "openfile" etc. Since we are OOP, there got be a class that we can apply this function. Before you dive into the my darlings ocean, I grab your arms and say: wait a minute, one more thing I need to mention: three surivial rules for playing with My Darlings (OMD):
 
-1. During interface tracing, everytime an interface that implements IUnknown is reached, you know this is the end. Notice that I use the workd "interface" not class? AO is built on top of Microsoft COM standard. It's bascially saying that every function call should be made against an instance of some kind of interface. By [protocol](https://msdn.microsoft.com/en-us/library/windows/desktop/ms680509(v=vs.85).aspx), every interface defined under the domain of COM must implement IUnknown interface. Don't worry what's in IUnknown, keep it unknown is not a bad idea. All you need to know is that it's a dead end once we see an interface in OMD that implements IUnknown directly. We have reached the toppest level of OMD hierarchy.
+**I**. During interface tracing, everytime an interface that implements IUnknown is reached, you know this is the end. Notice that I use the workd "interface" not class? AO is built on top of Microsoft COM standard. It's bascially saying that every function call should be made against an instance of some kind of interface. By [protocol](https://msdn.microsoft.com/en-us/library/windows/desktop/ms680509(v=vs.85).aspx), every interface defined under the domain of COM must implement IUnknown interface. Don't worry what's in IUnknown, keep it unknown is not a bad idea. All you need to know is that it's a dead end once we see an interface in OMD that implements IUnknown directly. We have reached the toppest level of OMD hierarchy.
 
 ![workspacefactory](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/workspacefactory.png)
 
 WorkspaceFactory is a class that implements IWorkspaceFactory, which is an inbound interface and implements IUnknown. This tell us that IWorkspaceFactory is a top level interface.
 
-2. Accessing functions defined in an interface is always through an instances of certain type of class. This class type is either a [Coclass](https://msdn.microsoft.com/en-us/library/24z8966k.aspx) or "instantiable" class, which is a type of class that it's instance can only be retrieved through other classes. This could mean retrieveing either from factory, singlton or upcasting. Let's still use WorkspaceFactory as the example. In AO.Net:
+
+**II**. Accessing functions defined in an interface is always through an instances of certain type of class. This class type is either a [Coclass](https://msdn.microsoft.com/en-us/library/24z8966k.aspx) or "instantiable" class, which is a type of class that it's instance can only be retrieved through other classes. This could mean retrieveing either from factory, singlton or upcasting. Let's still use WorkspaceFactory as the example. 
 
 ```c#
 [ComImport, ClassInterface((short) 0), Guid("FBF5715D-A05D-11D4-A64C-0008C711C8C1")]
@@ -442,11 +443,11 @@ From the decompilation, we can tell the constructor of WorkspaceFactoryClass is 
 
 On OMD, Abstract class, instantiable class and coclass can be identified easily by the shape of the rectangle. Abstract class is 2D shaded rectangle, instantiable class is 3D rectangle without shade, coclass is 3D shaded rectangle.
 
-3. Since these classes usually implement several interfaces. It's very typical to see in AO code, in order to access a method declared in interface D, which is implmented in class C, you have to obtain an instance of class A first, then cast it to an interface B using "as". Since class C implements both interface B and interface D, now you cast whatever you have in hand from B to D...
+**III**. Since these classes usually implement several interfaces. It's very typical to see in AO code, in order to access a method declared in interface D, which is implmented in class C, you have to obtain an instance of class A first, then cast it to an interface B using "as". Since class C implements both interface B and interface D, now you cast whatever you have in hand from B to D...
 
 Now you can dive! The only clue we have is that it appears all datasets are accessed through [Abstract Factory](http://www.dofactory.com/net/abstract-factory-design-pattern) design pattern. Since we'd like to open a file based GDB, I find FileGDBWorkspaceFactory in DataSourcesGDBObjectModel.pdf
 
-![filegdbworkspacefactory](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/filegdbworkspacefactory.png)
+![filegdbworkspacefactory](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/filegdbwokspacefactory.png)
 
 It has a shaded 3d rectangle, so we could initialize an instance of FileGDBWorkspaceFactory directly or create such a thing through reflector. It has an inbound interface: IWorkspaceFactory and this interface is described in GeoDatabaseObjectModel.pdf. See the previous image, it has a function called "OpenFromFile()", which is the method we expect. This method returns an interface IWorkspace, see the diagram below:
 
