@@ -395,7 +395,7 @@ Enjoy!
 
 ## Lesson 5: ArcObjects Object Model Diagram (OMD) ##
 
-If you are a seasoned AO developer, no matter you prefer VBA, VB, VB.Net, C#, Java or C++ (ordered by the popularity:), you got take these diagrams somtimes for looking up purpose at least. Well, if you are a AO newbie, just like me, you may feel I was exaggerated. I won't blame you coz I thought so as well. However, once you start implementing a function through AO seriously, these diagrams would be your ultmiate weapon, especially after couple time-wasting google searches. No kidding, I always joked with my colleagues: a senior developer is someone who could solve a technical puzzle that is not answered by search engines. Unfortunately, ArcObjects falls into this category more than other technologies! Two reasons: 1. AO has a relatively small user group; 2. ESRI did a very bad job to maintain developer's API documentation. I pay $1,500 a year for EDN subscription, but I still feel helpless more often than I expected...
+If you are a seasoned AO developer, no matter you prefer VBA, VB, VB.Net, C#, Java or C++ (ordered by the popularity:), you got take these diagrams somtimes for looking up purpose at least. Well, if you are an AO newbie, just like me, you may feel I was exaggerated. I won't blame you coz I thought so as well. However, once you start implementing a function through AO seriously, these diagrams would be your ultmiate weapon, especially after couple time-wasting google searches. No kidding, I always joked with my colleagues: a senior developer is someone who could solve a technical puzzle that is not answered by search engines. Unfortunately, ArcObjects falls into this category more than other technologies! Two reasons: 1. AO has a relatively small user group; 2. ESRI did a very bad job to maintain developer's API documentation. I pay $1,500 a year for EDN subscription, but I still feel helpless more often than I expected...
 
 People always learn from their own lessons (well, someone does falls into the same river more than once though). After couple frustrating experience with Google and EDN docs, I suddenly remembered the time when I was young: I saw those AO gurus standing and ruminating in front of a huge whiteboard with a couple feet long diagram nailed on it. I recalled the diagram they staring at is called AO Object Model Diagram, aka OMD (Oh My Darling)! Wait a minute, where are my darlings? On my desktop, They are located in:
 
@@ -415,3 +415,93 @@ Remember I mentioned before that those gurus printed ORM as large as a small sca
 
 Now, you know why plotter is necessary, do you :)
 
+If you know the interface that you are interested, it's always convenient to lookup the corresponding OMD directly. Otherwise, you feel you are playing a hide and seek game...
+
+OK, let's play the hide and seek game. Here is the deal: I'd like to open a file based GeoDatabase and get the information about the feature classes in it. If you are a programmer, you may know opening a file from disk usually use some functions like "open", or "openfile" etc. Since we are OOP, there got be a class that we can apply this function. Before you dive into the my darlings ocean, I grab your arms and say: wait a minute, one more thing I need to mention: the two surivial rules of playing with My Darlings (OMD):
+
+1. During interface tracing, everytime an interface that implements IUnknown is reached, you know this is the end. Notice that I use the workd "interface" not class? AO is built on top of Microsoft COM standard. It's bascially saying that every function call should be made against an instance of some kind of interface. By [protocol](https://msdn.microsoft.com/en-us/library/windows/desktop/ms680509(v=vs.85).aspx), every interface defined under the domain of COM must implement IUnknown interface. Don't worry what's in IUnknown, keep it unknown is not a bad idea. All you need to know is that it's a dead end once we see an interface in OMD that implements IUnknown directly. We have reached the toppest level of OMD hierarchy.
+
+![workspacefactory](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/workspacefactory.png)
+
+WorkspaceFactory is a class that implements IWorkspaceFactory, which is an inbound interface and implements IUnknown. This tell us that IWorkspaceFactory is a top level interface.
+
+2. Accessing functions defined in an interface is always through an instances of certain type of class. This class type is either a [Coclass](https://msdn.microsoft.com/en-us/library/24z8966k.aspx) or "instantiable" class, which is a type of class that it's instance can only be retrieved through other classes. This could mean retrieveing either from factory, singlton or upcasting. Let's still use WorkspaceFactory as the example. In AO.Net:
+
+```c#
+[ComImport, ClassInterface((short) 0), Guid("FBF5715D-A05D-11D4-A64C-0008C711C8C1")]
+public class WorkspaceFactoryClass : WorkspaceFactory, IWorkspaceFactory, IWorkspaceFactory2
+{
+    [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType=MethodCodeType.Runtime)]
+    internal extern WorkspaceFactoryClass();
+    ...
+}
+```
+In .Net, the WorkspaceFactory on OMD are implemented as two units: interface "WorkspaceFactory" and class "WorkspaceFactoryClass", which implements "WorkspaceFactory" interface along with other interfaces that WorkspaeFactory should do according to OMD. "WorkspaceFactory" is an empty interface probably functions as a placeholder. Why? I don't know. If you know, please let me know:)
+
+From the decompilation, we can tell the constructor of WorkspaceFactoryClass is with access modifier "internal", which means it can be only accessed inside assembly. "extern" means this constructor is implemented somewhere else. The attribute MethodImpl associated with the constructor is assigned with MethodImplOptions.InternalCall, which indicates "the call is internal, that is, it calls a method that is implemented within the common language runtime.". All of these makes sure that we can't create an instance of WorkspaceFactoryClass in our code. Therefore, WorkspaceFactoryClass qualifies to be an **"instantiable" class**.
+
+On OMD, Abstract class, instantiable class and coclass can be identified easily by the shape of the rectangle. Abstract class is 2D shaded rectangle, instantiable class is 3D rectangle without shade, coclass is 3D shaded rectangle.
+
+3. Since these classes usually implement several interfaces. It's very typical to see in AO code, in order to access a method declared in interface D, which is implmented in class C, you have to obtain an instance of class A first, then cast it to an interface B using "as". Since class C implements both interface B and interface D, now you cast whatever you have in hand from B to D...
+
+Now you can dive! The only clue we have is that it appears all datasets are accessed through [Abstract Factory](http://www.dofactory.com/net/abstract-factory-design-pattern) design pattern. Since we'd like to open a file based GDB, I find FileGDBWorkspaceFactory in DataSourcesGDBObjectModel.pdf
+
+![filegdbworkspacefactory](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/filegdbworkspacefactory.png)
+
+It has a shaded 3d rectangle, so we could initialize an instance of FileGDBWorkspaceFactory directly or create such a thing through reflector. It has an inbound interface: IWorkspaceFactory and this interface is described in GeoDatabaseObjectModel.pdf. See the previous image, it has a function called "OpenFromFile()", which is the method we expect. This method returns an interface IWorkspace, see the diagram below:
+
+![workspace](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/workspace.png)
+
+Notice it implements IFeatureWorkspace, since we are looking for the means to access feature class info, this seems interesting. OK, it has two methods: OpenFeatureClass and OpenFeatureDataset, the first one is for access a featureclass if the alias name of the feature class is known up front, the latter one, on the other hand, is for looping feature classes inside a featre class dataset if the names of feature classes are unknown, but the name of the feature class dataset is given.
+
+![workspace](https://github.com/hellocomrade/ArcObject/blob/master/lesson5/featuredataset.png)
+
+By examining the delcaration of FeatureDataset, the IFeatureClassContainer interface defines the way to access IFeatureClass through index, which is exactly the functions we hope to loop through all feature classes inside a file GDB. Below is the code to demonstrate this process. This is a direct copy from my project which requires developing a SOE.
+
+```c#
+        private bool loadGeometricNetworkFromPath(string path, ServerLogger logger)
+        {
+            bool result = false;
+            if (true == System.IO.Directory.Exists(path))
+            {
+                IWorkspaceFactory workspaceFactory = null;
+                IWorkspace workspace = null;
+                IFeatureDataset ftrDs = null;
+                try
+                {
+                    Type factoryType = Type.GetTypeFromProgID("esriDataSourcesGDB.FileGDBWorkspaceFactory");
+                    workspaceFactory = (IWorkspaceFactory)Activator.CreateInstance(factoryType);
+                    workspace = workspaceFactory.OpenFromFile(path, 0);
+                    IFeatureWorkspace ftrWorkspace = workspace as IFeatureWorkspace;
+                    ftrDs = ftrWorkspace.OpenFeatureDataset(this.networkName);
+                    IFeatureClassContainer fcContainer = ftrDs as IFeatureClassContainer;
+                    IFeatureClass fc = null;
+                    for (int i = 0; i < fcContainer.ClassCount; ++i)
+                    {
+                        fc = fcContainer.get_Class(i);
+                        if (esriFeatureType.esriFTSimpleEdge == fc.FeatureType)
+                            this.addEdgeFeatureClass(fc);
+                        else if (esriFeatureType.esriFTSimpleJunction == fc.FeatureType)
+                            this.addJunctionFeatureClass(fc);
+                    }
+                    ... ...
+                }
+                catch(Exception e)
+                {
+                    ... ...
+                }
+                finally
+                {
+                   ... ...
+                }
+            }
+            else
+            {
+                ... ...
+            }
+            return result;
+        }
+    }
+```
+
+Well, I hope this example is simple enough to give you some idea on how to use OMD. To be honest, I am not sure if I did a good job here. So, if I didn't, please let me know. :)
