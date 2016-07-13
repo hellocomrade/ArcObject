@@ -506,3 +506,35 @@ By examining the delcaration of FeatureDataset, the IFeatureClassContainer inter
 ```
 
 Well, I hope this example is simple enough to give you some idea on how to use OMD. To be honest, I am not sure if I did a good job here. So, if I didn't, please let me know. :)
+
+## Lesson 6: ArcGIS Server Object Extension (SOE) and Geoprocessing Tool##
+
+Haven't got chacne to update this series for a while. I copied/pasted some notes I made for our project to here.
+
+###Introduction
+**Developing Server Object Extensions (SOE)** is the standard way that ESRI offers to customize the behavior of ArcGIS server. Of course, SOE is a COM as well.
+
+The best reference for this feature, well, if you have SDK installed, is in the help file:
+
+**ArcObjects SDK for ArcGIS 10.4 -> ArcObjects Help for .NET developers -> Developing with ArcGIS -> Extending ArcGIS for Server -> Developing server object extensions**
+
+The memo here will NOT guide you to develop a SOE. Instead, we track the procedure for properly debugging, building and deploying SOE on desktop and ArcGIS server.
+
+Well, don't feel disappointed if you come here and expect to learn how to code SOE. Following the document listed in SDK helper, you should be able to do it. Or, if you need a shortcut with a complete sample, you may want to try this [ESRI github](https://github.com/Esri/arcobjects-sdk-community-samples/tree/master/Net/Server).
+
+###Debug
+Without ArcGIS Server, SOE debug has to be done on unit test level. If you don't want to separate SOE logic out of the default SOE template code file, try a mock up framework, such as [moq](https://www.nuget.org/packages/Moq/). However, ESRI developer didn't make their classes "mockup friendly", for example, ServerLogger class is defined as a sealed class, which prevents most of mockup framework to inherit and replace it with mock...
+
+If you have debug capacity over ArcGIS Server, here are couple tips:
+
+1. Make sure you open SOE project using Administrator account;
+2. When you attach to the ArcGIS Server processes, make sure to select all ArcSOC.exe with the type of ***(Managed)***;
+
+I was unable to debug the code inside Init, Shutdown and Construct. SOE runs inside ArcSOC container. Since these 3 functions are invoked during the construction and shutdown of the SOE, it's hard to tell which process I can attach to.
+
+###Deploy
+SOE deployment follows a two steps procedure assuming SOE type is MapServer and service is REST.
+
+1. If build SOE project in VS, a "soe" file will be created as an archive. In ArcGIS Server Manager, go to Site -> Extensions -> Add Extension, upload this "soe" file and ArcGIS Server will take care everything for you, such as COM registration.
+2. Prepare map data in ArcMap and publish them as map services with the option of "staging", which means "Do not upload, just prepare the data". This will create a sd file at "C:\Users\hellocomrade\AppData\Local\ESRI\Desktop10.4\Staging". In ArcGIS Server Manager, Services -> Publish Service, feed the wizard with the sd file and under the Capabilities, make sure to check the SOE you upload in step 1. If everything goes well, the map service will be started with your SOE.
+3. Go to "http://localhost:6080/arcgis/rest/services/" and select the map service defined in step 2, scroll down to the bottom of the page, you should see "Supported Extensions" showing up.
