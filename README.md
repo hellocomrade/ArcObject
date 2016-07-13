@@ -509,9 +509,11 @@ Well, I hope this example is simple enough to give you some idea on how to use O
 
 ## Lesson 6: ArcGIS Server Object Extension (SOE) and Geoprocessing Tool##
 
-Haven't got chacne to update this series for a while. I copied/pasted some notes I made for our project to here.
+Haven't got chacne to update this series for a while. I copied/pasted some notes I made for our project to here. By my personal experience, these two server side development approaches are both useful, although SOE seems to be more popular and capable, Geoprocessing tool does offer a possibility for developers who migrate from Arcpy. Besides, geoprocessing tool has a natural workflow built already for handling geoprocessing tasks that could take long time to complete. If you ask my oponion, I have to say "Luke, use force!".
 
-###Introduction
+###Server Object Extension (SOE)###
+
+####Introduction
 **Developing Server Object Extensions (SOE)** is the standard way that ESRI offers to customize the behavior of ArcGIS server. Of course, SOE is a COM as well.
 
 The best reference for this feature, well, if you have SDK installed, is in the help file:
@@ -522,7 +524,7 @@ The memo here will NOT guide you to develop a SOE. Instead, we track the procedu
 
 Well, don't feel disappointed if you come here and expect to learn how to code SOE. Following the document listed in SDK helper, you should be able to do it. Or, if you need a shortcut with a complete sample, you may want to try this [ESRI github](https://github.com/Esri/arcobjects-sdk-community-samples/tree/master/Net/Server).
 
-###Debug
+####Debug
 Without ArcGIS Server, SOE debug has to be done on unit test level. If you don't want to separate SOE logic out of the default SOE template code file, try a mock up framework, such as [moq](https://www.nuget.org/packages/Moq/). However, ESRI developer didn't make their classes "mockup friendly", for example, ServerLogger class is defined as a sealed class, which prevents most of mockup framework to inherit and replace it with mock...
 
 If you have debug capacity over ArcGIS Server, here are couple tips:
@@ -532,9 +534,101 @@ If you have debug capacity over ArcGIS Server, here are couple tips:
 
 I was unable to debug the code inside Init, Shutdown and Construct. SOE runs inside ArcSOC container. Since these 3 functions are invoked during the construction and shutdown of the SOE, it's hard to tell which process I can attach to.
 
-###Deploy
+####Deploy
 SOE deployment follows a two steps procedure assuming SOE type is MapServer and service is REST.
 
 1. If build SOE project in VS, a "soe" file will be created as an archive. In ArcGIS Server Manager, go to Site -> Extensions -> Add Extension, upload this "soe" file and ArcGIS Server will take care everything for you, such as COM registration.
 2. Prepare map data in ArcMap and publish them as map services with the option of "staging", which means "Do not upload, just prepare the data". This will create a sd file at "C:\Users\hellocomrade\AppData\Local\ESRI\Desktop10.4\Staging". In ArcGIS Server Manager, Services -> Publish Service, feed the wizard with the sd file and under the Capabilities, make sure to check the SOE you upload in step 1. If everything goes well, the map service will be started with your SOE.
 3. Go to "http://localhost:6080/arcgis/rest/services/" and select the map service defined in step 2, scroll down to the bottom of the page, you should see "Supported Extensions" showing up.
+
+###Geoprocessing Tool###
+
+####Introduction
+**Developing custom Geoprocessing function** is a "new" feature ESRI released through ArcPy? In fact, back to 9.3, this feature was provided to ArcObject .Net. However, the documentation was "hidden" in the book and ESRI seemed shy to introduce this feature to AO developer. You even can't find a template in Visual Studio integration for this feature through AO .Net SDK. You will have to work the whole thing out from scratch
+
+The best reference for this feature, well, if you have SDK installed, is in the help file:
+
+**ArcObjects SDK for ArcGIS 10.4 -> ArcObjects Help for .NET developers -> Developing with ArcGIS -> Learning ArcObjects -> Extending ArcObjects -> Custom geoprocessing function tools**
+
+I hope you now understand why I said ESRI was shy on this one...See the tree structure?
+
+The memo here will NOT guide you to create such a tool. Instead, we track the procedure for properly building and deploying this tool in the ArcMap and onto ArcGIS server.
+
+Well, don't feel disappointed if you come here and expect to learn how to code such a tool. Following the document listed in SDK helper, you should be able to do it. Or, if you need a shortcut with a complete sample, which is missing in SDK helper doc, you may want to try this [ESRI github](https://github.com/Esri/arcobjects-sdk-community-samples/tree/master/Net/Geoprocessing/GPCustomCalculateAreaFunctionTool).
+
+A side note: when you implement IGPFunction2, IsLicensed can simply return true without condition if you are sure this tool will not be distributed to third party who may not know the type of license, especially extensions, is required. Why? if you plan to use this tool on Desktop, Engine and Server, you will have to verify all of them in a if...else if...else, if you forgot and isLicensed returns false, your tool will not work. Why just simply return true from isLicensed without checking and let the hosting software (our tool is just a dll) to tell user whether the tool can be executed by throwing an exception during run time? :) It's not elegant though. 
+
+####Registration
+Given a compile-ready source code base as a managed COM in VS 2013, first thing I would do is to right click on project name -> properties -> Build, check "Register for COM interop". This will make the type inside assembly visible to COM client through the utility: RegAsm.exe. By having this checked, C# compiler will generate tlb file and use tlb file to complete the registration. This step actually does **NOT** sound like necessary anymore for ArcGIS 10 series. ESRI decided to register both native COM and managed COM without using system register through its own tool "**ESRIRegAsm.exe**". What the hell? Even ESRI doesn't trust MS system registry anymore, sad...
+
+"**Additional product information must be supplied at registration using an Esri utility called ESRIRegAsm.exe. ESRIRegAsm.exe replaces the standard Microsoft RegAsm.exe utility.**"
+
+If you have a ArcGIS class library project created through ArcGIS template, the registration will be done automatically as a post build event. That's why ArcMap add-in can always showing up automatically in ArcMap. However, this is not true for our case, since we are developing a GP function that is not supported so well by ESRI in terms of VS integration.
+
+But, it's OK. ESRI is not that mean. Simply browsing over the folder for your compiled dll, right click on it, on the context menu, see "Register"? That will do it! Is the world perfect? No! When that dialog for registration showing up, you can see the product like "Desktop" or "Engine" or both displayed. Then you will have to pick one for registration.
+
+But the whole purpose of a GP tool is that it can work as a GP service on ArcGIS server. Where is my ArcGIS server registration? Turn out there are two ESRIRegAsm.exe! One for ESRI's 32bit line, the other one is for 64bit Server line.
+
+They are at:
+
+32 bit: C:\Program Files (x86)\Common Files\ArcGIS\bin
+
+64 bit: C:\Program Files\Common Files\ArcGIS\bin
+
+If you want to register your tool for server, use the second binary in command line. (**Be sure to open cmd using administrator privilege** coz command line will not ask confirming administrator permission as other softwares may do, so you will get a "Can not write to disk" error). This is what I did:
+
+"C:\Program Files\Common Files\ArcGIS\bin\esriregasm.exe" c:\temp\GPNetTrace.dll
+
+I intentionally ignored /p: option, so the popup dialog will ask me to pick the product I'd like to register with. One thing you may want to know is: once the registration is done and the product is on, say ArcGIS Server, this dll at the registered place, for our case it's under C:\Temp, will be locked by the process. You will not be able to update it. So, do **NOT** register dll under your bin or obj folder for a VS project, VS linker will not be able to create dll for you anymore.
+
+####Debug in ArcMap
+
+First, you need to add this tool onto ArcMap as a toolbox. In catalog window. Creating a new toolbox under "My Toolbox" and then right click the newly created toolbox, Add->Tool, this will pop up a list of all registered toolboxes, including the one we just registered. How to find our tool? Well, it depends on the tool itself.
+
+```c#
+        private IGPFunctionName CreateGPFunctionNames(long index)
+        {
+            IGPFunctionName functionName = new GPFunctionName() as IGPFunctionName;
+            functionName.MinimumProduct = esriProductCode.esriProductCodeAdvanced;
+            IGPName name;
+
+            switch (index)
+            {
+                case (0):
+                    name = (IGPName)functionName;
+                    name.Category = "NetworkNavigation";
+                    name.Description = "Trace along a geometric network.";
+                    name.DisplayName = "Network Trace";
+                    name.Name = "TraceNetwork";
+                    name.Factory = (IGPFunctionFactory)this;
+                    break;
+            }
+
+            return functionName;
+        }
+        public IEnumGPName GetFunctionNames()
+        {
+            IArray nameArray = new EnumGPName();
+            nameArray.Add(CreateGPFunctionNames(0));
+            return (IEnumGPName)nameArray;
+        }
+```
+
+The second function "GetFunctionNames" is a method defined in interface "IGPFunctionFactory", this is required so ESRI software could extract tool name from the implementation of this interface. The name showing up on the toolbox list as root will be "name.Category", which is "NetworkNavigation", and the extra tool name will be name.DisplayName, which is "Network Trace", internally, this tool is tracked by name.Name, which is "TraceNetwork". Now, you should be able to find and add the tool onto ArcMap.
+
+All right, foreplay is done. Let's debug! Since our tool was compiled as a dll, we have to attach the debugger to whatever binary that actually executes code in our library. Under VS, Debug->Attach to Process. **In order to do so, you want to make sure you open VS using an administrator account.**
+
+Assuming you manage to get 64bit background processing work with your code, this means you have
+
+```c#
+Geoprocessor gp = new Geoprocessor();
+gp.Execute(...);
+```
+
+in your code. If it fails right on Execute, the rumor is that your dll was not registered with 64bit ESRIRegAsm.exe properly... I can't get this part work on my desktop, but you might be lucky... If so, you will need to attach the debugger with the process named **"RuntimeLocalSerer.exe"**. There are actually two processes with the same name. One runs for managed CLR, the other is for native COM. I believe you should attach with Managed one (Check the Type column in "Available Processes" table. That has been said, you could attach with both of them by pressing Ctrl on keyboard while clicking on the process's name.
+
+Say, 64bit background processing doesn't work well with you. Then, you will have to disable it in ArcMap. Geoprocessing -> Geoprocessing Options -> Background Processing -> Enable, uncheck "Enable" box to disable background processing. Now, you can simply attach the debugger with ArcMap process.
+
+####Debug with ArcGIS Server
+
+Allright, everything seems working well under ArcMap. Now,we can publish it as a GP service on ArcGIS Server. Before you do that, make sure you have your dll registered with ArcGIS Server (this requires 64bit registration, which is covered in previous text). We will not cover remote debug here, assuming you have VS and ArcGIS server installed locally. In Attach to Process window, looking for ArcSOC.exe with type of Managed,x64, have all of them selected, otherwise, there is really no way to tell the one you selected actually run the tool we are debugging.
